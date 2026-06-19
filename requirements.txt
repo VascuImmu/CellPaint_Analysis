@@ -1,0 +1,14 @@
+numpy
+pandas
+matplotlib
+seaborn
+tqdm
+scikit-learn
+pycytominer
+umap-learn
+openpyxl
+pyarrow
+aicsimageio
+aicspylibczi
+dask
+cmap
