@@ -9,7 +9,7 @@ import re
 import sys
 from pathlib import Path
 
-from CellPaint_Analysis.metadata_utils import plot_quality_control
+from metadata_utils import plot_quality_control
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
@@ -80,7 +80,7 @@ print(f"Results →  : {OUTPUT_RSLT_DIR}")
 MAX_IMAGES_WARNING   = 864                 # Warn if Per_Image rows exceed this
 CELL_COUNT_THRESH    = 2.0                 # Drop images < mean - N*std cell count
 CELL_AREA_THRESH     = 2.0                 # Drop images > mean + N*std cell area
-QC_FOCUS_THRESH      = 0.5                 # Drop images < median * N (focus score)
+QC_FOCUS_THRESH      = 0#.5                 # Drop images < median * N (focus score)
 
 # --- Data loading & aggregation ---
 DROP_KEYWORDS        = ["COSTES", "PARENT", "CHILD"]  # Feature name exclusions
@@ -130,6 +130,7 @@ LEGEND_FONTSIZE      = 10
 LEGEND_MARKERSCALE   = 3
 ANNOT_FONTSIZE       = 5
 
+COLOR_BY_TREATMENT         = False
 PLOT_WELLMAP               = True
 PLOT_CLUSTERMAP_V          = True
 PLOT_CLUSTERMAP_H          = True
@@ -170,8 +171,12 @@ else:
 metadata = metadata[metadata["Date"] == date]
 # metadata = metadata.loc[metadata["Concentration (ng)"].isna()].fillna(0).copy()
 metadata["concentration_numeric"] = metadata["Concentration (ng)"].apply(parse_value)
-metadata = compute_alpha_per_group(metadata, comp_col="Treatment", conc_col="concentration_numeric")
-metadata, color_dict = assign_colors(metadata, comp_col="Treatment", conc_col="concentration_numeric")
+if COLOR_BY_TREATMENT:
+    comp_col = "Treatment"
+else:
+    comp_col = "treatment_full"
+metadata = compute_alpha_per_group(metadata, comp_col=comp_col, conc_col="concentration_numeric").copy()
+metadata, color_dict = assign_colors(metadata, comp_col=comp_col, conc_col="concentration_numeric")
 metadata = metadata.loc[:, ~metadata.columns.str.startswith("Unnamed")]
 # remove "20" prefix from Name if present, to match SELECT_NAMES
 metadata["Name"] = metadata["Name"].apply(lambda x: x[2:] if isinstance(x, str) and x.startswith("20") else x)
@@ -217,7 +222,7 @@ print(f"  Tables: {table_names['name'].tolist()}")
 # =============================================================================
 print("\n[3/8] Loading Per_Image metadata and detecting outliers...")
 per_image = pd.read_sql(
-    "SELECT ImageNumber, Image_Metadata_Well, Image_Count_Cells, Mean_Cells_AreaShape_Area , 'Image_ImageQuality_FocusScore_OrigDNA'"
+    "SELECT ImageNumber, Image_Metadata_Well, Image_Count_Cells, Mean_Cells_AreaShape_Area , Image_ImageQuality_FocusScore_OrigDNA "
     "FROM Per_Image",
     conn
 )
@@ -232,14 +237,14 @@ cell_count = per_image["Image_Count_Cells"]
 cell_area  = per_image["Mean_Cells_AreaShape_Area"]
 qc_focus   = per_image['Image_ImageQuality_FocusScore_OrigDNA']
 
-plot_quality_control(OUTPUT_PLT_DIR,cell_area,cell_count,qc_focus,CELL_AREA_THRESH,CELL_COUNT_THRESH,QC_FOCUS_THRESH)
+plot_quality_control(OUTPUT_PLT_DIR,cell_area,cell_count,qc_focus,CELL_AREA_THRESH,CELL_COUNT_THRESH, QC_FOCUS_THRESH)
 
 drop_images       = (
     (cell_count < cell_count.mean() - CELL_COUNT_THRESH * cell_count.std()) |
     (cell_area  > cell_area.mean()  + CELL_AREA_THRESH  * cell_area.std()) |
     (qc_focus   < qc_focus.median() * QC_FOCUS_THRESH)
-
 )
+
 drop_image_numbers = per_image["ImageNumber"][drop_images]
 print(f"  Dropping {drop_images.sum()} outlier images out of {len(per_image)}.")
 
@@ -460,7 +465,7 @@ if PLOT_SIMILARITY_CLUSTERED:
 # =============================================================================
 if DO_PCA or DO_TSNE or DO_UMAP:
     print("\n  Sampling per-cell data from SQLite...")
-    meta_cols_sample = ["ImageNumber", "Image_Count_Cells", "Cells_Number_Object_Number",
+    meta_cols_sample = ["ImageNumber", "Image_Count_Cells", "Cells_Number_Object_Number", 'Image_ImageQuality_FocusScore_OrigDNA',
                         "Name", "treatment_full", "Date", "concentration_numeric", "alpha","Image_Metadata_Well"]
     feature_cols_sample = [c for c in selected.columns
                            if c not in meta_cols_sample and c != "Mean_Cells_AreaShape_Area"]
@@ -586,6 +591,8 @@ if DO_SC_TSNE:
                     color=y[mask]["plot_color"].unique()[0] if mask.any() else "gray",
                     alpha=y[mask]["alpha"].unique()[0]      if mask.any() else 0.5
                 )
+                ax.ravel()[i].axis("off")
+                ax.ravel()[i].set_title(t, fontsize=ANNOT_FONTSIZE)
                 ax.ravel()[i].scatter(X_tsne[~mask, 0], X_tsne[~mask, 1],
                                       s=SCATTER_SIZE_SC, color="#AAAAAA", alpha=0.1, zorder=-1)
         plt.suptitle("Per-cell t-SNE — small multiples", fontsize=10)

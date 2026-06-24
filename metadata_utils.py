@@ -64,7 +64,6 @@ def compute_alpha_per_group(df, comp_col, conc_col):
 
 def assign_colors(df, comp_col="composition", conc_col="concentration"):
     df = df.copy()
-    
     # Get color per composition
     color_dict = get_color_map(df[comp_col])
     
@@ -126,7 +125,7 @@ def plot_well_map(metadata, well_col="Image_Metadata_Well", treatment_col="treat
     else:
         plt.savefig(save_path)
 
-def plot_quality_control(save_dir, cell_area, cell_count, qc_focus, area_thresh, count_thresh, focus_thresh):
+def plot_quality_control(save_dir, cell_area, cell_count, qc_focus, area_thresh, count_thresh, qc_focus_thresh):
     plt.figure(figsize=(15,5))
     
     plt.subplot(1,3,1)
@@ -144,7 +143,7 @@ def plot_quality_control(save_dir, cell_area, cell_count, qc_focus, area_thresh,
     plt.subplot(1,3,3)
     qc_focus.hist(bins=100)
     plt.axvline(qc_focus.median(), color='k', linestyle='dashed', linewidth=1)
-    plt.axvline(qc_focus.median()*QC_FOCUS_THRESH, color='g', linestyle='dashed', linewidth=1)
+    plt.axvline(qc_focus.median()*qc_focus_thresh, color='g', linestyle='dashed', linewidth=1)
     plt.title("Focus Score Distribution")
     
     plt.tight_layout()
