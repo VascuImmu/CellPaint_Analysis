@@ -176,7 +176,7 @@ if COLOR_BY_TREATMENT:
 else:
     comp_col = "treatment_full"
 metadata = compute_alpha_per_group(metadata, comp_col=comp_col, conc_col="concentration_numeric").copy()
-metadata, color_dict = assign_colors(metadata, comp_col=comp_col, conc_col="concentration_numeric")
+metadata, color_dict = assign_colors(metadata, comp_col=comp_col, conc_col="concentration_numeric",cmap_name="tab20b")
 metadata = metadata.loc[:, ~metadata.columns.str.startswith("Unnamed")]
 # remove "20" prefix from Name if present, to match SELECT_NAMES
 metadata["Name"] = metadata["Name"].apply(lambda x: x[2:] if isinstance(x, str) and x.startswith("20") else x)
@@ -591,10 +591,12 @@ if DO_SC_TSNE:
                     color=y[mask]["plot_color"].unique()[0] if mask.any() else "gray",
                     alpha=y[mask]["alpha"].unique()[0]      if mask.any() else 0.5
                 )
-                ax.ravel()[i].axis("off")
                 ax.ravel()[i].set_title(t, fontsize=ANNOT_FONTSIZE)
                 ax.ravel()[i].scatter(X_tsne[~mask, 0], X_tsne[~mask, 1],
                                       s=SCATTER_SIZE_SC, color="#AAAAAA", alpha=0.1, zorder=-1)
+        for a in ax.ravel():
+            a.axis("off")
+
         plt.suptitle("Per-cell t-SNE — small multiples", fontsize=10)
         plt.tight_layout()
         plt.savefig(OUTPUT_PLT_DIR / "tsne_grid.png", dpi=PLT_DPI,
@@ -693,8 +695,8 @@ if DO_TSNE:
                          s=SCATTER_SIZE, color=color, alpha=alpha, zorder=2)
             ax_i.set_title(t, fontsize=ANNOT_FONTSIZE)
             ax_i.axis("off")
-        for j in range(len(treatments), n_side ** 2):
-            axes.ravel()[j].axis("off")
+        for a in axes.ravel():
+            a.axis("off")
         plt.suptitle("Per-image t-SNE — small multiples", fontsize=10)
         plt.tight_layout()
         plt.savefig(OUTPUT_PLT_DIR / "tsne_per_image_grid.png", dpi=PLT_DPI,

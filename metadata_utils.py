@@ -43,9 +43,9 @@ def compute_alpha(conc, min_c, max_c):
     norm = (conc - min_c) / (max_c - min_c)
     return 0.5 + 0.5 * norm
 
-def get_color_map(compositions):
+def get_color_map(compositions,cmap_name="tab20"):
     unique = sorted(compositions.unique())
-    cmap = plt.get_cmap("tab20")  # good categorical palette
+    cmap = plt.get_cmap(cmap_name)  # good categorical palette
     
     color_dict = {
         comp: cmap(i % 20)
@@ -62,10 +62,10 @@ def compute_alpha_per_group(df, comp_col, conc_col):
     
     return df
 
-def assign_colors(df, comp_col="composition", conc_col="concentration"):
+def assign_colors(df, comp_col="composition", conc_col="concentration", cmap_name="tab20b"):
     df = df.copy()
     # Get color per composition
-    color_dict = get_color_map(df[comp_col])
+    color_dict = get_color_map(df[comp_col], cmap_name=cmap_name)
     
     
     colors = []
